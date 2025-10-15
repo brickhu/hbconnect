@@ -7,7 +7,7 @@ export const GQLUrls = {
   arweave: 'https://arweave.net/graphql',
 }
 
-export const DEFAULT_HYPERBEAM_NODE_URL = "https://workshop.forward.computer"
+export const DEFAULT_HYPERBEAM_NODE_URL = "https://forward.computer"
 export const DEFAULT_GQL_ENDPOINT = GQLUrls.goldsky
 
 
