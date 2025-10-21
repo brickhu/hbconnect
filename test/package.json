@@ -1,0 +1,23 @@
+{
+  "name": "test",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@arweave-wallet-kit/browser-wallet-strategy": "^0.1.1",
+    "@arweave-wallet-kit/core": "^0.1.1",
+    "@arweave-wallet-kit/wander-strategy": "^0.1.2",
+    "@arweave-wallet-kit/webwallet-strategy": "^0.0.1-beta.4",
+    "arwallet-solid-kit": "github:brickhu/arwallet-solid-kit",
+    "solid-js": "^1.9.9"
+  },
+  "devDependencies": {
+    "vite": "^7.1.7",
+    "vite-plugin-solid": "^2.11.8"
+  }
+}

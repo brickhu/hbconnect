@@ -1,6 +1,15 @@
-import { createSigner } from "@permaweb/aoconnect";
+// import { connect, createDataItemSigner } from "@permaweb/aoconnect/browser";
+// import { createSigner } from "@permaweb/aoconnect"
+import { createSigner } from "./signer/browser";
 import { arGql } from "./argql";
 import { toDataItemSigner, toANS104Request } from "./utils"
+
+
+function assoc(k, v, o) {
+    o[k] = v
+    return o
+}
+
 
 export const GQLUrls = {
   goldsky: 'https://arweave-search.goldsky.com/graphql' ,
@@ -14,42 +23,120 @@ export const DEFAULT_GQL_ENDPOINT = GQLUrls.goldsky
 export class HB {
   constructor(params = {}) {
     const {url = DEFAULT_HYPERBEAM_NODE_URL, wallet, gql_url = DEFAULT_GQL_ENDPOINT} = params
-    this.url = url || DEFAULT_HYPERBEAM_NODE_URL || import.meta.env.VITE_HYPERBEAM_URL
+    this.url = url || DEFAULT_HYPERBEAM_NODE_URL 
     this.wallet = wallet,
     this.gql_url = gql_url || DEFAULT_GQL_ENDPOINT
+    this.authority = params?.authority
   }
   fetch = function (path, params) {
-    return fetch(this.url + path, params).then(res => res?.ok && res?.json())
+    let url =  this.url || DEFAULT_HYPERBEAM_NODE_URL
+    return fetch(url + path, params)
   }
-  send = async function (fields, wallet) {
-    try {
-      let { target } = fields
-      if (!target) throw new Error("Missed target process")
-      let signer = createSigner(wallet || this.wallet)
-      if (!signer) throw new Error("Missed singer")
+  getScheduler = async function() {
+    let url =  this.url || DEFAULT_HYPERBEAM_NODE_URL
+    let scheduler
+    if (url === DEFAULT_HYPERBEAM_NODE_URL) {
+      scheduler = 'https://scheduler.forward.computer'
+    }else{
+      scheduler = url
+    }
+    return await fetch(`${scheduler}/~meta@1.0/info/address`).then(res => res.text())
+  }
+  getAuthority = async function () {
+    let url = this.url || DEFAULT_HYPERBEAM_NODE_URL
+    let authority = this.authority
 
+    // https://forward.computer/~meta@1.0/info/node_processes/router/trusted
+    // or https://forward.computer/~meta@1.0/info/node_processes/router/trusted
+    if (authority === "undefined" || authority === undefined) {
+        if (url === 'https://forward.computer') {
+            authority = "QWg43UIcJhkdZq6ourr1VbnkwcP762Lppd569bKWYKY"
+        } else {
+            authority = await this.fetch('/~meta@1.0/info/address')
+                .then(r => r.text())
+        }
+        authority = authority + ',fcoN_xJeisVsPXA-trzVAuIiqO3ydLQxM-L4XbrQKzY'
+    }
+    console.log(`Authority: ${authority}`);
+    return authority
+}
+  spawn = async function(name,data,wallet) {
+    try {
+      if(!wallet&&!this.wallet) throw new Error("missed wallet")
+      let scheduler = await this.getScheduler();
+      let tags = [
+          { name: 'App-Name', value: 'hyper-aos' },
+          { name: 'Name', value: name },
+          { name: 'Authority', value: await this.getAuthority() },
+      ]
+      let params = {
+        path: '/push',
+        method: 'POST',
+        type: 'Process',
+        device: 'process@1.0',
+        "data-protocol": "ao",
+        'scheduler-device': 'scheduler@1.0',
+        'push-device': 'push@1.0',
+        'execution-device': 'lua@5.3a',
+        // "bundle": "false",
+        // "commitment-device": "ans104@1.0",
+        // "app-name": "hyper-aos",
+        variant: 'ao.N.1',
+        ...tags.reduce((a, t) => assoc(t.name, t.value, a), {}),
+        'aos-version': '2.0.7', // from aos-cli pkg.version
+        'accept-bundle': 'true', // note: added to header automatically
+        'codec-device': 'ans104@1.0',
+        'signingformat': 'ANS-104',
+        'scheduler': scheduler,
+        'scheduler-location': scheduler,
+        'Module': 'xVcnPK8MPmcocS6zwq1eLmM2KhfyarP8zzmz3UVi1g4', // from aos-cli pkg.hyper.module
+        "data" : data
+      };
+
+
+
+      const {headers,item} = toANS104Request(params)
+      const {id,raw} = await toDataItemSigner(createSigner(wallet || this.wallet))(item)
+
+      const res = await this.fetch("/~process@1.0/push", {
+        method: "POST",
+        headers: headers,
+        body: raw,
+        redirect: 'follow'
+      })
+      if(res?.ok){
+        return id
+      }else{
+        throw new Error("Spawn failed")
+      }
+
+      
+    } catch (error) {
+      throw error
+    }
+  }
+  send = async function (target, fields, data, wallet) {
+    try {
+      if (!target) throw new Error("Missed target process")
       fields['Data-Protocol'] = "ao"
       fields.Variant = "ao.N.1"
       fields.signingFormat = fields.signingFormat || "ANS-104"
+      fields.target = target
+      fields.data = data
 
-      const ans104Request = toANS104Request(fields)
-      const signedRequest = await toDataItemSigner(signer)(ans104Request.item)
+      const {headers,item} = toANS104Request(fields)
+      const {id,raw} = await toDataItemSigner(createSigner(wallet || this.wallet))(item)
+      
+      let path = `/${target}~process@1.0/push?accept=application/json&accept-bundle=true`
 
-      let url = this.url
-      let path = `/${target}~process@1.0/push/serialize~json@1.0`
-      let fetch_req = {
-        body: signedRequest.raw,
-        url: url + path,
-        path,
+      const res = await this.fetch(path, {
         method: "POST",
-        headers: ans104Request.headers
-      }
-      const res = await fetch(fetch_req.url, {
-        method: fetch_req.method,
-        headers: fetch_req.headers,
-        body: fetch_req.body,
+        headers: headers,
+        body: raw,
         redirect: 'follow'
       })
+
+      console.log(res)
 
       // if (res.status === 422 && signingFormat === 'HTTP') {
       //   // Try again with different signing format
@@ -73,11 +160,8 @@ export class HB {
         return res
       }
 
-      const body = await res.json()
-
-      return {
-        id: signedRequest?.id,
-        ...body
+      if (res.status == 200) {
+        return res.json()
       }
 
     } catch (error) {
@@ -88,18 +172,17 @@ export class HB {
     try {
       const {process,message,slot} = fields
       if(!process) { throw new Error("missed process id.")}
-      if(message || slot){
-        let path = ``
-        if(message){
-          path = `/${process}~process@1.0/compute&id=${message}/results/serialize~json@1.0`
-        }
-        if(slot){
-          path = `/${process}~process@1.0/compute&slot=${slot}/results/serialize~json@1.0`
-        }
-        return fetch(this.url + path, params).then(res => res?.ok && res?.json())
-      }else{
-        throw new Error("missed message id or slot.")
-      }
+      if(!message && !slot) { throw new Error("missed message or slot.")}
+      let url = this.url || DEFAULT_HYPERBEAM_NODE_URL
+      let path = `/${process}~process@1.0/compute=${slot || message}/results`
+
+      return this.fetch(path, {
+          method : "GET",
+          headers : params?.headers || {
+            "Accept": "application/json",
+            "Accept-bundle" : "true"
+          }
+      }).then(res => res?.ok && res?.json())
       
     } catch (error) {
       throw error
