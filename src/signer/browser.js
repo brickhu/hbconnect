@@ -1,7 +1,7 @@
 import { Buffer } from 'buffer/index.js'
 import * as WarpArBundles from "warp-arbundles";
 import * as ArBundles from '@dha-team/arbundles'
-const {DataItem} = ArBundles
+const {DataItem} = WarpArBundles
 import base64url from 'base64url'
 // eslint-disable-next-line no-unused-vars
 // import { Types } from '../../dal.js'

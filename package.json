@@ -33,8 +33,6 @@
   },
 
   "dependencies": {
-    "@permaweb/aoconnect": "^0.0.90",
-    "@dha-team/arbundles": "^1.0.4",
     "ramda": "^0.31.3",
     "warp-arbundles": "^1.0.4",
     "zod": "^4.1.12"

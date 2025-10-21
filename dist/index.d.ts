@@ -1,9 +1,9 @@
 import { Buffer } from 'buffer/index.js';
-import * as ArBundles from '@dha-team/arbundles';
+import * as WarpArBundles from 'warp-arbundles';
 import base64url$1 from 'base64url';
 import { keys, omit } from 'ramda';
 
-const {DataItem} = ArBundles;
+const {DataItem} = WarpArBundles;
 // eslint-disable-next-line no-unused-vars
 // import { Types } from '../../dal.js'
 // import { DATAITEM_SIGNER_KIND, HTTP_SIGNER_KIND } from '../signer.js'

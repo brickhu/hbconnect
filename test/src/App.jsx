@@ -109,7 +109,7 @@ function App() {
         url : HB_URL,
         wallet : wallet()
       })
-      const result = await hb.spawn("Test88","2025")
+      const result = await hb.spawn("Test89","2025")
       if(result){
         console.log('result: ', result);
         setProcess(result)
