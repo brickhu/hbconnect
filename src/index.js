@@ -127,7 +127,7 @@ export class HB {
       const {headers,item} = toANS104Request(fields)
       const {id,raw} = await toDataItemSigner(createSigner(wallet || this.wallet))(item)
       
-      let path = `/${target}~process@1.0/push?accept=application/json&accept-bundle=true`
+      let path = `/${target}~process@1.0/push`
 
       const res = await this.fetch(path, {
         method: "POST",
@@ -161,7 +161,9 @@ export class HB {
       }
 
       if (res.status == 200) {
-        return res.json()
+        const body = await res.json()
+        body.id = id
+        return body
       }
 
     } catch (error) {

@@ -4,7 +4,7 @@ import viteLogo from '/vite.svg'
 import './App.css'
 import { useWallet } from "arwallet-solid-kit";
 import {HB} from "hbconnect"
-let PID = "qXfjf5moWMg8Rs-H7H4MmXPeeMwjGYcl5_vRwNCw9D0"
+let PID = "Ym3wm8rae833hjj1LRN_d1zU1-fC8nL9qfCRgRaTqzQ"
 // let PID = "XpEyX_4VJRCo7V6z4hLIpGiAGsVVMNwOUyRwj3DRyzE"
 let HB_URL = "http://node.arweaveoasis.com:8734"
 
